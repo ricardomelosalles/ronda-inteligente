@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#123b67">
+<title>Ronda Inteligente</title>
+<style>
+:root{
+  --azul:#123b67;--azul2:#1d578e;--fundo:#f1f4f8;--branco:#fff;--texto:#263445;--cinza:#687789;
+  --verde:#18864b;--vermelho:#c43b3b;--laranja:#d78a17;--borda:#dce3eb;--sec:#e7edf4;--secTxt:#123b67;
+  --tab:#dfe7f0;--metric:#f3f6fa;--notice:#edf4fb;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --fundo:#0f1722;--branco:#1a2432;--texto:#e3e9f0;--cinza:#93a1b3;--borda:#2e3b4d;--sec:#26354a;--secTxt:#cfe0f4;
+    --tab:#26354a;--metric:#212e3f;--notice:#1d2b3e;
+  }
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--fundo);color:var(--texto)}
+header{background:linear-gradient(135deg,var(--azul),var(--azul2));color:#fff;padding:22px 18px}
+header h1{margin:0;font-size:23px}
+header p{margin:7px 0 0;font-size:13px;opacity:.85}
+.container{max-width:850px;margin:auto;padding:15px}
+.card{background:var(--branco);border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px #172b4210}
+h2{font-size:17px;margin:0 0 14px}
+label{display:block;font-size:13px;font-weight:bold;margin:12px 0 6px}
+input,select,textarea{width:100%;padding:12px;border:1px solid var(--borda);border-radius:8px;background:var(--branco);color:var(--texto);font-size:15px}
+textarea{min-height:85px;resize:vertical}
+button{border:0;border-radius:8px;padding:12px 15px;background:var(--azul2);color:#fff;font-weight:bold;font-size:14px;cursor:pointer}
+button.secondary{background:var(--sec);color:var(--secTxt)}
+button.green{background:var(--verde)}
+button.red{background:var(--vermelho)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.actions button{flex:1}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:5px 0 12px}
+.tabs button{white-space:nowrap;background:var(--tab);color:var(--secTxt);padding:10px 13px}
+.tabs button.active{background:var(--azul2);color:#fff}
+.page{display:none}
+.page.active{display:block}
+.small{font-size:12px;color:var(--cinza)}
+.status{display:inline-block;padding:5px 8px;border-radius:20px;font-size:11px;font-weight:bold;background:#e8edf3;color:#263445}
+.status.ok{background:#dff3e7;color:#176b3c}
+.status.pending{background:#fff0d6;color:#895600}
+.item{border:1px solid var(--borda);border-radius:9px;padding:12px;margin:9px 0}
+.item p{margin:5px 0;font-size:13px}
+video{width:100%;border-radius:10px;background:#111}
+#cameraArea{display:none;margin-top:12px}
+#photoPreview{max-width:100%;max-height:220px;display:none;margin-top:10px;border-radius:8px}
+footer{text-align:center;color:var(--cinza);font-size:11px;padding:20px}
+hr{border:0;border-top:1px solid var(--borda);margin:15px 0}
+.notice{background:var(--notice);border-left:4px solid var(--azul2);padding:11px;border-radius:5px;font-size:13px;line-height:1.5}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric{background:var(--metric);border-radius:9px;padding:13px}
+.metric strong{display:block;font-size:22px;color:var(--secTxt)}
+.metric span{font-size:12px;color:var(--cinza)}
+@media(max-width:500px){.container{padding:10px}}
+.splash-on header,.splash-on .container,.splash-on footer{display:none}
+#splash{display:none}
+.splash-on #splash{display:flex}
+#splash{min-height:100dvh;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;padding:24px;background:radial-gradient(circle at 50% 20%,#1d578e,#0c2a4a 70%);color:#fff}
+.splash-logo{width:150px;height:150px;border-radius:25px;background:#fff;padding:14px;box-shadow:0 16px 50px #0006}
+.splash-brand{font-size:11px;letter-spacing:.15em;font-weight:800;color:#efb24d}
+#splash h1{font-size:34px;letter-spacing:.03em;margin:0}
+#splash p{margin:0;color:#b9d3ee}
+#splash .btn{min-width:220px;font-size:17px;margin-top:18px;background:#efb24d;color:#123b67}
+#splash small{opacity:.6;font-size:11px}
+#camModal{display:none;position:fixed;inset:0;z-index:50;background:#000a;align-items:center;justify-content:center;padding:20px}
+#camModal .box{background:var(--branco);color:var(--texto);border-radius:14px;padding:22px;max-width:380px;width:100%;text-align:center}
+#camModal .ico{font-size:40px}
+#camModal h2{margin:8px 0 10px}
+#dlg{display:none;position:fixed;inset:0;z-index:60;background:#000a;align-items:center;justify-content:center;padding:20px}
+#dlg .box{background:var(--branco);color:var(--texto);border-radius:14px;padding:20px;max-width:380px;width:100%}
+#dlg p{font-size:15px;line-height:1.5;margin:0 0 14px;white-space:pre-line}
+#camModal p{font-size:14px;line-height:1.5;margin:0 0 6px}
+</style>
+</head>
+<body class="splash-on">
+<section id="splash">
+  <svg class="splash-logo" viewBox="0 0 120 120" role="img" aria-label="Escudo com rota de ronda e pontos de verificação">
+    <path d="M60 10 L102 25 V58 C102 83 84 101 60 111 C36 101 18 83 18 58 V25 Z" fill="#123b67"/>
+    <path d="M60 18 L94 30 V58 C94 78 79 93 60 102 C41 93 26 78 26 58 V30 Z" fill="#1d578e"/>
+    <path d="M40 82 C40 66 62 70 62 56 C62 44 82 48 82 36" fill="none" stroke="#efb24d" stroke-width="3.5" stroke-dasharray="2 6" stroke-linecap="round"/>
+    <circle cx="40" cy="82" r="6" fill="#fff"/>
+    <circle cx="62" cy="56" r="6" fill="#fff"/>
+    <circle cx="82" cy="36" r="9" fill="#efb24d"/>
+    <path d="M77.5 36 L81 39.5 L87 32.5" fill="none" stroke="#123b67" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div class="splash-brand">PREVENÇÃO DE PERDAS</div>
+  <h1>RONDA INTELIGENTE</h1>
+  <p>Controle de rondas e ocorrências • Dados salvos neste celular</p>
+  <button class="btn" onclick="enterApp()">ENTRAR</button>
+  <small>Uso interno • Funcionamento local</small>
+</section>
+<header>
+  <h1>RONDA INTELIGENTE</h1>
+  <p>Sistema de rondas e prevenção de perdas</p>
+  <p id="connectionStatus">Verificando armazenamento...</p>
+</header>
+
+<div class="container">
+  <div class="card">
+    <h2>Identificação do fiscal</h2>
+    <label>Fiscal responsável</label>
+    <select id="fiscalSelect"><option value="">Selecione o fiscal</option></select>
+    <div class="small">Selecione quem está realizando a ronda neste aparelho.</div>
+  </div>
+
+  <div class="tabs">
+    <button class="active" data-page="ronda">Ronda</button>
+    <button data-page="ocorrencias">Ocorrências</button>
+    <button data-page="cadastros">Cadastros</button>
+    <button data-page="historico">Histórico</button>
+    <button data-page="config">Configurações</button>
+  </div>
+
+  <section id="ronda" class="page active">
+    <div class="card">
+      <h2>Iniciar ou continuar ronda</h2>
+      <label>Setor / ponto da ronda</label>
+      <select id="pointSelect"><option value="">Selecione um ponto</option></select>
+      <div class="actions">
+        <button onclick="startRonda()">Registrar ponto</button>
+        <button class="secondary" onclick="openScanner()">Ler QR Code</button>
+      </div>
+      <div id="cameraArea">
+        <video id="camera" autoplay playsinline></video>
+        <p class="small">Aponte a câmera para o QR Code do ponto.</p>
+        <button class="red" onclick="closeScanner()">Fechar câmera</button>
+      </div>
+      <label>Ou digite o código do QR Code</label>
+      <div class="grid">
+        <input id="manualQR" placeholder="Ex.: RECEBIMENTO">
+        <button onclick="readManualQR()">Identificar</button>
+      </div>
+    </div>
+
+    <div class="card" id="inspectionCard" style="display:none">
+      <h2 id="currentPointTitle">Ponto selecionado</h2>
+      <p class="small" id="currentPointInfo"></p>
+      <label>Checklist do ponto (opcional)</label>
+      <div id="checklist"></div>
+      <label>Observações da inspeção</label>
+      <textarea id="inspectionNotes" placeholder="Descreva alguma informação importante..."></textarea>
+      <div class="actions">
+        <button class="green" onclick="saveInspection()">Salvar inspeção</button>
+        <button class="secondary" onclick="newOccurrenceFromPoint()">Registrar ocorrência</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Resumo do aparelho</h2>
+      <div class="grid">
+        <div class="metric"><strong id="metricInspections">0</strong><span>Inspeções locais</span></div>
+        <div class="metric"><strong id="metricOccurrences">0</strong><span>Ocorrências locais</span></div>
+        <div class="metric"><strong id="metricPending">0</strong><span>Pendentes de envio</span></div>
+        <div class="metric"><strong id="metricPoints">0</strong><span>Pontos cadastrados</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ocorrencias" class="page">
+    <div class="card">
+      <h2>Registrar ocorrência</h2>
+      <label>Setor / ponto</label>
+      <select id="occurrencePoint"><option value="">Ocorrência geral / sem ponto específico</option></select>
+      <label>Tipo de ocorrência</label>
+      <select id="occurrenceType">
+        <option>Irregularidade</option><option>Segurança</option><option>Equipamento inoperante</option>
+        <option>Patrimônio</option><option>Procedimento operacional</option><option>Outros</option>
+      </select>
+      <label>Descrição</label>
+      <textarea id="occurrenceDescription" placeholder="Descreva o que aconteceu..."></textarea>
+      <label>Foto da ocorrência (opcional)</label>
+      <input type="file" id="occurrencePhoto" accept="image/*" capture="environment">
+      <img id="photoPreview" alt="Prévia da foto">
+      <div class="actions"><button class="green" onclick="saveOccurrence()">Salvar ocorrência</button></div>
+    </div>
+    <div class="card">
+      <h2>Ocorrências registradas</h2>
+      <div id="occurrenceList"></div>
+    </div>
+  </section>
+
+  <section id="cadastros" class="page">
+    <div class="card">
+      <h2>Cadastro de fiscais</h2>
+      <label>Nome do fiscal</label>
+      <input id="newFiscal" placeholder="Digite o nome">
+      <button style="margin-top:10px;width:100%" onclick="addFiscal()">Adicionar fiscal</button>
+      <div id="fiscalList"></div>
+    </div>
+    <div class="card">
+      <h2>Cadastro de pontos de ronda</h2>
+      <label>Nome do ponto</label>
+      <input id="newPointName" placeholder="Ex.: Recebimento">
+      <label>Código do QR Code</label>
+      <input id="newPointCode" placeholder="Ex.: RECEBIMENTO">
+      <label>Setor</label>
+      <input id="newPointSector" placeholder="Ex.: Área externa">
+      <button style="margin-top:10px;width:100%" onclick="addPoint()">Adicionar ponto</button>
+      <div class="notice" style="margin-top:12px">
+        O código cadastrado deve ser igual ao conteúdo gravado no QR Code daquele ponto. Você pode usar o próprio código para gerar a etiqueta QR Code em uma ferramenta externa.
+      </div>
+      <div id="pointList"></div>
+    </div>
+  </section>
+
+  <section id="historico" class="page">
+    <div class="card">
+      <h2>Inspeções realizadas</h2>
+      <div id="inspectionList"></div>
+    </div>
+    <div class="card">
+      <h2>Backup dos dados</h2>
+      <p class="small">Exporte uma cópia dos registros armazenados neste aparelho.</p>
+      <button class="secondary" style="width:100%" onclick="exportBackup()">Exportar backup JSON</button>
+    </div>
+  </section>
+
+  <section id="config" class="page">
+    <div class="card">
+      <h2>Sincronização com Google Sheets</h2>
+      <label>Endereço do Google Apps Script</label>
+      <textarea id="syncUrl" placeholder="Cole aqui o endereço da implantação do Apps Script"></textarea>
+      <button style="width:100%;margin-top:10px" onclick="saveConfig()">Salvar configuração</button>
+      <hr>
+      <p class="notice">
+        A sincronização depende de um Google Apps Script preparado para receber os registros. O aplicativo só considera os dados enviados quando o servidor responder confirmando o recebimento.
+      </p>
+      <button class="green" style="width:100%;margin-top:12px" onclick="syncData()">Sincronizar agora</button>
+      <p id="syncMessage" class="small"></p>
+    </div>
+    <div class="card">
+      <h2>Importar backup</h2>
+      <input type="file" id="backupFile" accept=".json,application/json">
+      <button style="width:100%;margin-top:10px" onclick="importBackup()">Importar backup</button>
+    </div>
+  </section>
+</div>
+
+<footer>Ronda Inteligente • Banco de dados local • Versão inicial</footer>
+
+<div id="camModal" role="dialog" aria-modal="true" aria-labelledby="camTitle">
+  <div class="box">
+    <div class="ico">📷</div>
+    <h2 id="camTitle">Permitir uso da câmera?</h2>
+    <p>Para ler o QR Code dos pontos de ronda, o app precisa usar a câmera do celular.</p>
+    <p class="small">Nenhuma imagem é gravada ou enviada. A câmera é usada só para identificar o código. Na próxima tela, toque em “Permitir”.</p>
+    <div class="actions">
+      <button class="secondary" id="camCancel">Agora não</button>
+      <button class="green" id="camAllow">Continuar</button>
+    </div>
+  </div>
+</div>
+<div id="dlg" role="alertdialog" aria-modal="true"><div class="box"><p id="dlgText"></p><div class="actions"><button class="secondary" id="dlgNo">Cancelar</button><button id="dlgYes">OK</button></div></div></div>
+<input type="file" id="qrPhoto" accept="image/*" capture="environment" style="display:none">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+
+<script>
+const DB_NAME="RondaInteligenteDB",DB_VERSION=1;
+let db;
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const request=indexedDB.open(DB_NAME,DB_VERSION);
+    request.onupgradeneeded=e=>{
+      const d=e.target.result;
+      ["fiscais","pontos","inspecoes","ocorrencias","config"].forEach(n=>{
+        if(!d.objectStoreNames.contains(n)) d.createObjectStore(n,{keyPath:"id"});
+      });
+    };
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error);
+  });
+}
+function store(name,mode="readonly"){return db.transaction(name,mode).objectStore(name)}
+function getAll(name){
+  return new Promise((res,rej)=>{const r=store(name).getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)});
+}
+function put(name,data){
+  return new Promise((res,rej)=>{const r=store(name,"readwrite").put(data);r.onsuccess=()=>res(true);r.onerror=()=>rej(r.error)});
+}
+function remove(name,id){
+  return new Promise((res,rej)=>{const r=store(name,"readwrite").delete(id);r.onsuccess=()=>res(true);r.onerror=()=>rej(r.error)});
+}
+function makeId(){return "RND-"+Date.now()+"-"+Math.random().toString(16).slice(2)}
+function nowISO(){return new Date().toISOString()}
+function dateText(v){return new Date(v).toLocaleString("pt-BR")}
+
+const defaultPoints=[
+  ["Recebimento","RECEBIMENTO","Recebimento"],["Depósito","DEPOSITO","Depósito"],
+  ["Frente de caixa","FRENTE_CAIXA","Frente de caixa"],["Perfumaria","PERFUMARIA","Loja"],
+  ["Estacionamento","ESTACIONAMENTO","Área externa"],["CFTV","CFTV","Segurança"],
+  ["QGBT","QGBT","Área técnica"],["Caixa d’água","CAIXA_DAGUA","Área técnica"],
+  ["Docas","DOCAS","Área externa"],["Sala de descanso","SALA_DESCANSO","Área interna"],
+  ["Pátio externo","PATIO_EXTERNO","Área externa"]
+];
+const checklistItems=[
+  "Local em condições normais","Portas e acessos em condições adequadas",
+  "Equipamentos e instalações em funcionamento","Área organizada e sem obstruções",
+  "Condições de segurança adequadas"
+];
+
+let currentCheckin=null,currentPoint=null,cameraStream=null,detector=null,scanActive=false,photoData=null;
+
+async function init(){
+  try{
+    db=await openDB();
+    const points=await getAll("pontos");
+    if(points.length===0){
+      for(const p of defaultPoints)
+        await put("pontos",{id:makeId(),name:p[0],code:p[1],sector:p[2],createdAt:nowISO()});
+    }
+    const config=await getAll("config");
+    if(!config.find(c=>c.id==="main")) await put("config",{id:"main",syncUrl:""});
+    document.getElementById("connectionStatus").textContent="Banco local ativo • "+(navigator.onLine?"Online":"Offline");
+    await refreshAll();
+  }catch(error){
+    alert("Não foi possível iniciar o banco local: "+error.message);
+  }
+}
+
+document.querySelectorAll(".tabs button").forEach(button=>{
+  button.addEventListener("click",()=>{
+    document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+    button.classList.add("active");
+    document.getElementById(button.dataset.page).classList.add("active");
+  });
+});
+
+async function addFiscal(){
+  const name=document.getElementById("newFiscal").value.trim();
+  if(!name) return alert("Informe o nome do fiscal.");
+  const fiscais=await getAll("fiscais");
+  if(fiscais.some(f=>f.name.toLowerCase()===name.toLowerCase())) return alert("Esse fiscal já está cadastrado.");
+  await put("fiscais",{id:makeId(),name,active:true});
+  document.getElementById("newFiscal").value="";
+  await refreshAll();
+}
+async function deleteFiscal(id){
+  if(!(await ask("Deseja excluir este fiscal?"))) return;
+  await remove("fiscais",id);
+  await refreshAll();
+}
+async function loadFiscais(){
+  const fiscais=await getAll("fiscais");
+  const select=document.getElementById("fiscalSelect");
+  const selected=select.value;
+  select.innerHTML='<option value="">Selecione o fiscal</option>';
+  fiscais.filter(f=>f.active!==false).forEach(f=>{
+    const o=document.createElement("option");o.value=f.id;o.textContent=f.name;select.appendChild(o);
+  });
+  if(fiscais.some(f=>f.id===selected)) select.value=selected;
+  const list=document.getElementById("fiscalList");
+  list.innerHTML="";
+  fiscais.forEach(f=>{
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`<strong>${escapeHTML(f.name)}</strong>
+      <button class="red" style="float:right;padding:7px 10px" onclick="deleteFiscal('${f.id}')">Excluir</button>
+      <div style="clear:both"></div>`;
+    list.appendChild(div);
+  });
+}
+
+async function addPoint(){
+  const name=document.getElementById("newPointName").value.trim();
+  const code=document.getElementById("newPointCode").value.trim().toUpperCase();
+  const sector=document.getElementById("newPointSector").value.trim();
+  if(!name||!code) return alert("Informe o nome e o código do ponto.");
+  const points=await getAll("pontos");
+  if(points.some(p=>p.code.toUpperCase()===code)) return alert("Já existe um ponto com esse código.");
+  await put("pontos",{id:makeId(),name,code,sector,createdAt:nowISO()});
+  ["newPointName","newPointCode","newPointSector"].forEach(i=>document.getElementById(i).value="");
+  await refreshAll();
+}
+async function deletePoint(id){
+  if(!(await ask("Excluir este ponto de ronda?"))) return;
+  await remove("pontos",id);
+  await refreshAll();
+}
+async function loadPoints(){
+  const points=await getAll("pontos");
+  const selects=[document.getElementById("pointSelect"),document.getElementById("occurrencePoint")];
+  selects.forEach((select,index)=>{
+    const old=select.value;
+    select.innerHTML=index===0
+      ?'<option value="">Selecione um ponto</option>'
+      :'<option value="">Ocorrência geral / sem ponto específico</option>';
+    points.forEach(p=>{
+      const o=document.createElement("option");o.value=p.id;o.textContent=p.name;select.appendChild(o);
+    });
+    select.value=old;
+  });
+  const list=document.getElementById("pointList");
+  list.innerHTML="";
+  points.forEach(p=>{
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`<strong>${escapeHTML(p.name)}</strong>
+      <p>Setor: ${escapeHTML(p.sector||"-")}</p>
+      <p>Código QR: <b>${escapeHTML(p.code)}</b></p>
+      <button class="red" onclick="deletePoint('${p.id}')">Excluir ponto</button>`;
+    list.appendChild(div);
+  });
+}
+
+function getGPS(){
+  return new Promise(resolve=>{
+    if(!navigator.geolocation){resolve(null);return}
+    navigator.geolocation.getCurrentPosition(
+      pos=>resolve({latitude:pos.coords.latitude,longitude:pos.coords.longitude,accuracy:pos.coords.accuracy}),
+      ()=>resolve(null),
+      {enableHighAccuracy:true,timeout:8000,maximumAge:30000}
+    );
+  });
+}
+
+async function startRonda(pointId){
+  const fiscalId=document.getElementById("fiscalSelect").value;
+  if(!fiscalId) return alert("Selecione o fiscal responsável.");
+  const id=(typeof pointId==="string"&&pointId)||document.getElementById("pointSelect").value;
+  if(!id) return alert("Selecione um ponto de ronda.");
+  const points=await getAll("pontos");
+  currentPoint=points.find(p=>p.id===id);
+  if(!currentPoint) return alert("Ponto não encontrado.");
+  document.getElementById("pointSelect").value=id;
+  document.getElementById("currentPointTitle").textContent=currentPoint.name;
+  document.getElementById("currentPointInfo").textContent=
+    "Setor: "+(currentPoint.sector||"Não informado")+" • QR: "+currentPoint.code;
+  document.getElementById("inspectionNotes").value="";
+  const MIN=5;
+  const recent=(await getAll("inspecoes")).filter(r=>r.pointId===currentPoint.id&&r.fiscalId===fiscalId&&Date.now()-new Date(r.createdAt).getTime()<MIN*60000).sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0];
+  const gps0=recent?null:await getGPS();
+  const fl=(await getAll("fiscais")).find(f=>f.id===fiscalId);
+  currentCheckin={id:makeId(),type:"checkin",fiscalId,fiscalName:fl?fl.name:"",pointId:currentPoint.id,pointName:currentPoint.name,pointCode:currentPoint.code,sector:currentPoint.sector,answers:[],notes:"",gps:gps0,createdAt:nowISO(),synced:false};
+  if(recent){currentCheckin=recent;alert("Este ponto já teve check-in nos últimos "+MIN+" minutos. Nenhum novo registro foi criado; você pode continuar o checklist.")}
+  else await put("inspecoes",currentCheckin);
+  document.getElementById("currentPointInfo").textContent+=(recent?" • Check-in já registrado às ":" • Check-in registrado às ")+new Date(currentCheckin.createdAt).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+  await loadHistory();await updateMetrics();
+  const checklist=document.getElementById("checklist");
+  checklist.innerHTML="";
+  checklistItems.forEach((item,index)=>{
+    const div=document.createElement("div");
+    div.className="item";
+    const label=document.createElement("label");
+    label.textContent=item;
+    div.appendChild(label);
+    const select=document.createElement("select");
+    select.id="check_"+index;
+    [["normal","Normal"],["irregularidade","Apresenta irregularidade"],
+     ["inoperante","Equipamento inoperante"],["nao_verificado","Não foi possível verificar"]
+    ].forEach(([v,t])=>{
+      const o=document.createElement("option");o.value=v;o.textContent=t;select.appendChild(o);
+    });
+    div.appendChild(select);
+    checklist.appendChild(div);
+  });
+  const card=document.getElementById("inspectionCard");
+  card.style.display="block";
+  card.scrollIntoView({behavior:"smooth"});
+}
+
+async function readManualQR(){
+  const code=document.getElementById("manualQR").value.trim().toUpperCase();
+  if(!code) return alert("Digite o código do ponto.");
+  const points=await getAll("pontos");
+  const point=points.find(p=>p.code.toUpperCase()===code);
+  if(!point) return alert("Código não cadastrado.");
+  await startRonda(point.id);
+  document.getElementById("manualQR").value="";
+}
+
+let scanCanvas=null,camOK=false;
+function askCameraPermission(){
+  return new Promise(async resolve=>{
+    if(camOK) return resolve(true);
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+      alert("Este aparelho ou navegador não permite acesso à câmera. Use a digitação manual do código.");
+      return resolve(false);
+    }
+    let state="granted"; // vai direto para o pedido nativo do navegador
+    if(state==="granted") return resolve(true);
+    if(state==="denied"){
+      alert("O acesso à câmera está bloqueado. Libere a câmera nas configurações do navegador (cadeado ao lado do endereço) e tente de novo, ou digite o código manualmente.");
+      return resolve(false);
+    }
+    const m=document.getElementById("camModal");
+    m.style.display="flex";
+    document.getElementById("camAllow").onclick=()=>{m.style.display="none";resolve(true)};
+    document.getElementById("camCancel").onclick=()=>{m.style.display="none";resolve(false)};
+  });
+}
+async function openScanner(){
+  if(!(await askCameraPermission())) return;
+  try{
+    detector=("BarcodeDetector" in window)?new BarcodeDetector({formats:["qr_code"]}):null;
+    if(!detector&&!window.jsQR) return alert("Leitura de QR Code indisponível neste navegador. Use a digitação manual do código.");
+    cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    camOK=true;
+    document.getElementById("camera").srcObject=cameraStream;
+    document.getElementById("cameraArea").style.display="block";
+    scanActive=true;
+    scanLoop();
+  }catch(error){
+    if(await ask("A câmera ao vivo não está disponível aqui. Deseja tirar uma foto do QR Code? A foto é lida e descartada, não fica salva.")) document.getElementById("qrPhoto").click();
+  }
+}
+async function scanLoop(){
+  if(!scanActive) return;
+  const video=document.getElementById("camera");
+  if(video.readyState>=2){
+    try{
+      let code=null;
+      if(detector){const codes=await detector.detect(video);if(codes.length)code=codes[0].rawValue}
+      else if(window.jsQR&&video.videoWidth){
+        const c=scanCanvas||(scanCanvas=document.createElement("canvas"));
+        c.width=Math.min(480,video.videoWidth);c.height=Math.round(video.videoHeight*c.width/video.videoWidth);
+        const x=c.getContext("2d",{willReadFrequently:true});
+        x.drawImage(video,0,0,c.width,c.height);
+        const r=jsQR(x.getImageData(0,0,c.width,c.height).data,c.width,c.height);
+        if(r) code=r.data;
+      }
+      if(code){
+        closeScanner();
+        document.getElementById("manualQR").value=code;
+        await readManualQR();
+        return;
+      }
+    }catch(error){}
+  }
+  requestAnimationFrame(scanLoop);
+}
+function closeScanner(){
+  scanActive=false;
+  if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null}
+  document.getElementById("camera").srcObject=null;
+  document.getElementById("cameraArea").style.display="none";
+}
+
+async function saveInspection(){
+  const fiscalId=document.getElementById("fiscalSelect").value;
+  if(!fiscalId||!currentPoint) return alert("Selecione o fiscal e o ponto.");
+  const fiscais=await getAll("fiscais");
+  const fiscal=fiscais.find(f=>f.id===fiscalId);
+  if(!fiscal) return alert("Fiscal não encontrado.");
+  const answers=checklistItems.map((item,index)=>({item,status:document.getElementById("check_"+index).value}));
+  const ci=currentCheckin;
+  const gps=(ci&&ci.gps)||await getGPS();
+  const record={
+    id:ci?ci.id:makeId(),type:"inspecao",fiscalId,fiscalName:fiscal.name,
+    pointId:currentPoint.id,pointName:currentPoint.name,pointCode:currentPoint.code,sector:currentPoint.sector,
+    answers,notes:document.getElementById("inspectionNotes").value.trim(),gps,createdAt:ci?ci.createdAt:nowISO(),synced:false
+  };
+  await put("inspecoes",record);
+  const irregular=answers.filter(a=>a.status!=="normal");
+  if(irregular.length){
+    const create=await ask("Foram identificadas "+irregular.length+
+      " situações diferentes de normal. Deseja abrir uma ocorrência vinculada a esta inspeção?");
+    if(create){
+      await put("ocorrencias",{
+        id:makeId(),type:"ocorrencia",fiscalId,fiscalName:fiscal.name,
+        pointId:currentPoint.id,pointName:currentPoint.name,
+        occurrenceType:"Irregularidade de checklist",
+        description:irregular.map(a=>a.item+": "+a.status).join("\n"),
+        photo:null,gps,createdAt:nowISO(),synced:false,status:"Aberta",inspectionId:record.id
+      });
+    }
+  }
+  alert("Inspeção salva no aparelho.");
+  document.getElementById("inspectionCard").style.display="none";
+  currentPoint=null;currentCheckin=null;
+  await refreshAll();
+}
+
+function newOccurrenceFromPoint(){
+  if(currentPoint) document.getElementById("occurrencePoint").value=currentPoint.id;
+  document.querySelector('[data-page="ocorrencias"]').click();
+}
+
+document.getElementById("occurrencePhoto").addEventListener("change",async event=>{
+  const file=event.target.files[0];
+  photoData=null;
+  if(!file){document.getElementById("photoPreview").style.display="none";return}
+  if(file.size>5*1024*1024){event.target.value="";return alert("A foto deve ter no máximo 5 MB.")}
+  photoData=await fileToBase64(file);
+  const preview=document.getElementById("photoPreview");
+  preview.src=photoData;
+  preview.style.display="block";
+});
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);
+  });
+}
+
+async function saveOccurrence(){
+  const fiscalId=document.getElementById("fiscalSelect").value;
+  const description=document.getElementById("occurrenceDescription").value.trim();
+  if(!fiscalId) return alert("Selecione o fiscal responsável.");
+  if(!description) return alert("Descreva a ocorrência.");
+  const fiscais=await getAll("fiscais");
+  const fiscal=fiscais.find(f=>f.id===fiscalId);
+  if(!fiscal) return alert("Fiscal não encontrado.");
+  const pointId=document.getElementById("occurrencePoint").value;
+  const points=await getAll("pontos");
+  const point=points.find(p=>p.id===pointId);
+  const gps=await getGPS();
+  await put("ocorrencias",{
+    id:makeId(),type:"ocorrencia",fiscalId,fiscalName:fiscal.name,
+    pointId:point?point.id:null,pointName:point?point.name:"Geral",
+    occurrenceType:document.getElementById("occurrenceType").value,
+    description,photo:photoData,gps,createdAt:nowISO(),synced:false,status:"Aberta"
+  });
+  document.getElementById("occurrenceDescription").value="";
+  document.getElementById("occurrencePhoto").value="";
+  document.getElementById("photoPreview").style.display="none";
+  photoData=null;
+  alert("Ocorrência salva no aparelho.");
+  await refreshAll();
+}
+
+async function changeOccurrenceStatus(id,status){
+  const list=await getAll("ocorrencias");
+  const item=list.find(o=>o.id===id);
+  if(!item) return;
+  item.status=status;item.updatedAt=nowISO();item.synced=false;
+  await put("ocorrencias",item);
+  await refreshAll();
+}
+
+async function loadHistory(){
+  const inspections=await getAll("inspecoes");
+  const list=document.getElementById("inspectionList");
+  list.innerHTML="";
+  inspections.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  if(!inspections.length) list.innerHTML='<p class="small">Nenhuma inspeção registrada.</p>';
+  inspections.forEach(i=>{
+    const irregular=i.answers.filter(a=>a.status!=="normal").length;
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`<strong>${escapeHTML(i.pointName)}</strong>
+      <p>Fiscal: ${escapeHTML(i.fiscalName)}</p>
+      <p>${dateText(i.createdAt)}</p>
+      <p>${i.type==="checkin"?"Somente check-in (sem checklist)":irregular+" situação(ões) fora do normal"}</p>
+      <span class="status ${i.synced?"ok":"pending"}">${i.synced?"Sincronizada":"Pendente"}</span>`;
+    list.appendChild(div);
+  });
+}
+
+async function loadOccurrences(){
+  const occurrences=await getAll("ocorrencias");
+  const list=document.getElementById("occurrenceList");
+  list.innerHTML="";
+  occurrences.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  if(!occurrences.length) list.innerHTML='<p class="small">Nenhuma ocorrência registrada.</p>';
+  occurrences.forEach(o=>{
+    const div=document.createElement("div");
+    div.className="item";
+    const img=o.photo?`<img src="${o.photo}" style="max-width:100%;max-height:180px;border-radius:8px">`:"";
+    div.innerHTML=`<strong>${escapeHTML(o.occurrenceType)}</strong>
+      <p>Local: ${escapeHTML(o.pointName||"Geral")}</p>
+      <p>Fiscal: ${escapeHTML(o.fiscalName)}</p>
+      <p>${dateText(o.createdAt)}</p>
+      <p>${escapeHTML(o.description).replace(/\n/g,"<br>")}</p>
+      ${img}
+      <p><span class="status ${o.synced?"ok":"pending"}">${o.synced?"Sincronizada":"Pendente de envio"}</span></p>
+      <label>Status da ocorrência</label>
+      <select onchange="changeOccurrenceStatus('${o.id}',this.value)">
+        <option ${o.status==="Aberta"?"selected":""}>Aberta</option>
+        <option ${o.status==="Em andamento"?"selected":""}>Em andamento</option>
+        <option ${o.status==="Resolvida"?"selected":""}>Resolvida</option>
+      </select>`;
+    list.appendChild(div);
+  });
+}
+
+async function updateMetrics(){
+  const inspections=await getAll("inspecoes");
+  const occurrences=await getAll("ocorrencias");
+  const points=await getAll("pontos");
+  const pending=inspections.filter(i=>!i.synced).length+occurrences.filter(o=>!o.synced).length;
+  document.getElementById("metricInspections").textContent=inspections.length;
+  document.getElementById("metricOccurrences").textContent=occurrences.length;
+  document.getElementById("metricPending").textContent=pending;
+  document.getElementById("metricPoints").textContent=points.length;
+}
+
+async function saveConfig(){
+  const syncUrl=document.getElementById("syncUrl").value.trim();
+  if(syncUrl&&!syncUrl.startsWith("https://script.google.com/"))
+    return alert("Informe um endereço válido de implantação do Google Apps Script.");
+  await put("config",{id:"main",syncUrl});
+  alert("Configuração salva.");
+}
+async function loadConfig(){
+  const configs=await getAll("config");
+  const config=configs.find(c=>c.id==="main");
+  document.getElementById("syncUrl").value=config?.syncUrl||"";
+}
+
+async function syncData(){
+  if(!navigator.onLine) return alert("O aparelho está sem internet.");
+  const configs=await getAll("config");
+  const config=configs.find(c=>c.id==="main");
+  if(!config||!config.syncUrl) return alert("Configure primeiro o endereço do Google Apps Script.");
+  const inspections=(await getAll("inspecoes")).filter(i=>!i.synced);
+  const occurrences=(await getAll("ocorrencias")).filter(o=>!o.synced);
+  const msg=document.getElementById("syncMessage");
+  if(!inspections.length&&!occurrences.length){msg.textContent="Não existem registros pendentes.";return}
+  const payload={app:"RondaInteligente",version:1,sentAt:nowISO(),inspections,occurrences};
+  msg.textContent="Enviando registros...";
+  try{
+    const response=await fetch(config.syncUrl,{
+      method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)
+    });
+    if(!response.ok) throw new Error("Resposta HTTP "+response.status);
+    const result=await response.json();
+    if(result.ok!==true) throw new Error(result.message||"O servidor não confirmou o recebimento.");
+    for(const item of inspections){item.synced=true;item.syncedAt=nowISO();await put("inspecoes",item)}
+    for(const item of occurrences){item.synced=true;item.syncedAt=nowISO();await put("ocorrencias",item)}
+    msg.textContent="Sincronização confirmada pelo servidor.";
+    alert("Dados enviados e confirmação recebida.");
+  }catch(error){
+    msg.textContent="Falha na sincronização: "+error.message;
+    alert("Não foi possível confirmar o envio. Os dados continuam salvos no aparelho.");
+  }
+  await refreshAll();
+}
+
+async function exportBackup(){
+  const backup={
+    app:"RondaInteligente",exportedAt:nowISO(),
+    fiscais:await getAll("fiscais"),pontos:await getAll("pontos"),
+    inspecoes:await getAll("inspecoes"),ocorrencias:await getAll("ocorrencias"),config:await getAll("config")
+  };
+  const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="backup-ronda-inteligente.json";a.click();
+  URL.revokeObjectURL(url);
+}
+async function importBackup(){
+  const file=document.getElementById("backupFile").files[0];
+  if(!file) return alert("Selecione um arquivo de backup.");
+  try{
+    const backup=JSON.parse(await file.text());
+    if(backup.app!=="RondaInteligente") throw new Error("Arquivo não reconhecido.");
+    for(const name of ["fiscais","pontos","inspecoes","ocorrencias","config"]){
+      if(Array.isArray(backup[name])) for(const item of backup[name]) await put(name,item);
+    }
+    alert("Backup importado.");
+    await refreshAll();
+  }catch(error){
+    alert("Erro ao importar backup: "+error.message);
+  }
+}
+
+function escapeHTML(value){
+  return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"})[c]);
+}
+
+async function refreshAll(){
+  await loadFiscais();await loadPoints();await loadHistory();
+  await loadOccurrences();await updateMetrics();await loadConfig();
+}
+window.addEventListener("online",()=>{document.getElementById("connectionStatus").textContent="Banco local ativo • Online"});
+window.addEventListener("offline",()=>{document.getElementById("connectionStatus").textContent="Banco local ativo • Offline"});
+
+document.getElementById("qrPhoto").addEventListener("change",async e=>{
+  const f=e.target.files[0];e.target.value="";
+  if(!f) return;
+  try{
+    const bmp=await createImageBitmap(f);
+    const sc=Math.min(1,1000/Math.max(bmp.width,bmp.height));
+    const c=document.createElement("canvas");
+    c.width=Math.round(bmp.width*sc);c.height=Math.round(bmp.height*sc);
+    const x=c.getContext("2d");x.drawImage(bmp,0,0,c.width,c.height);
+    let code=null;
+    if("BarcodeDetector" in window){try{const r=await new BarcodeDetector({formats:["qr_code"]}).detect(c);if(r.length)code=r[0].rawValue}catch(err){}}
+    if(!code&&window.jsQR){const r=jsQR(x.getImageData(0,0,c.width,c.height).data,c.width,c.height);if(r)code=r.data}
+    if(!code) return alert("Não consegui ler o QR Code na foto. Chegue mais perto, deixe o código inteiro e bem iluminado, e tente de novo.");
+    document.getElementById("manualQR").value=code;
+    await readManualQR();
+  }catch(err){alert("Não foi possível ler a foto. Digite o código manualmente.")}
+});
+function showDlg(text,confirmMode){
+  return new Promise(res=>{
+    const d=document.getElementById("dlg");
+    document.getElementById("dlgText").textContent=text;
+    document.getElementById("dlgNo").style.display=confirmMode?"":"none";
+    d.style.display="flex";
+    const close=v=>{d.style.display="none";res(v)};
+    document.getElementById("dlgYes").onclick=()=>close(true);
+    document.getElementById("dlgNo").onclick=()=>close(false);
+  });
+}
+window.alert=t=>{showDlg(String(t),false)};
+const ask=t=>showDlg(t,true);
+function enterApp(){document.body.classList.remove("splash-on");window.scrollTo(0,0)}
+
+init();
+</script>
+</body>
+</html>
